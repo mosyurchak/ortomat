@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../apps/backend/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Ortomat {
+  id          String   @id @default(uuid())
+  name        String
+  address     String
+  total_cells Int      @default(37)
+  status      String   @default("active")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  inventory   OrtomatInventory[]
+  orders      Order[]
+  doctors     Doctor[]
+
+  @@map("ortomat")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password_hash String
+  role          String
+  first_name    String
+  last_name     String
+  middle_name   String?
+  phone         String
+  is_verified   Boolean  @default(false)
+  created_at    DateTime @default(now())
+  doctor        Doctor?
+  courier       Courier?
+
+  @@map("users")
+}
+
+model Doctor {
+  id              String   @id @default(uuid())
+  user_id         String   @unique
+  ortomat_id      String?
+  qr_code         String   @unique
+  referral_code   String   @unique
+  commission_rate Float    @default(10.0)
+  total_sales     Int      @default(0)
+  total_earnings  Float    @default(0.0)
+  user            User     @relation(fields: [user_id], references: [id])
+  ortomat         Ortomat? @relation(fields: [ortomat_id], references: [id])
+  orders          Order[]
+
+  @@map("doctors")
+}
+
+model Courier {
+  id       String             @id @default(uuid())
+  user_id  String             @unique
+  status   String             @default("active")
+  user     User               @relation(fields: [user_id], references: [id])
+  inventory OrtomatInventory[]
+
+  @@map("couriers")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String
+  size        String?
+  price       Float
+  image_url   String?
+  video_url   String?
+  attributes  Json?
+  inventory   OrtomatInventory[]
+  orders      Order[]
+
+  @@map("products")
+}
+
+model OrtomatInventory {
+  id               String   @id @default(uuid())
+  ortomat_id       String
+  cell_number      Int
+  product_id       String?
+  is_available     Boolean  @default(true)
+  last_refill_date DateTime?
+  courier_id       String?
+  ortomat          Ortomat  @relation(fields: [ortomat_id], references: [id])
+  product          Product? @relation(fields: [product_id], references: [id])
+  courier          Courier? @relation(fields: [courier_id], references: [id])
+
+  @@map("ortomat_inventory")
+}
+
+model Order {
+  id             String   @id @default(uuid())
+  order_number   String   @unique
+  ortomat_id     String
+  cell_number    Int
+  product_id     String
+  doctor_id      String?
+  customer_phone String?
+  price          Float
+  commission     Float?
+  payment_status String
+  payment_id     String?
+  created_at     DateTime @default(now())
+  completed_at   DateTime?
+  ortomat        Ortomat  @relation(fields: [ortomat_id], references: [id])
+  product        Product  @relation(fields: [product_id], references: [id])
+  doctor         Doctor?  @relation(fields: [doctor_id], references: [id])
+
+  @@map("orders")
+}
