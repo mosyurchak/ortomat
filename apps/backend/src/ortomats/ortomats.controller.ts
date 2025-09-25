@@ -1,13 +1,12 @@
-import { Controller, Get, Param } from "@nestjs/common";
-import { OrtomatsService } from "./ortomats.service";
+﻿import { Controller, Get } from "@nestjs/common";
 
 @Controller("ortomats")
 export class OrtomatsController {
-  constructor(private svc: OrtomatsService) {}
-
   @Get()
-  list() { return this.svc.list(); }
-
-  @Get(":id")
-  details(@Param("id") id: string) { return this.svc.byId(id); }
+  async findAll() {
+    return [
+      { id: "o1", name: "Ortomat 1", address: "Clinic A" },
+      { id: "o2", name: "Ortomat 2", address: "Clinic B" }
+    ];
+  }
 }

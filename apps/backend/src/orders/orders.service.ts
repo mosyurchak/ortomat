@@ -1,40 +1,51 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+﻿import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../common/prisma/prisma.service";
+import { CreateOrderDto } from "./dto/create-order.dto";
 
 @Injectable()
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(payload: { ortomat_id: string; product_id: string; cell_number: number; doctor_id?: string | null; price: number; customer_phone?: string | null; }) {
-    const product = await this.prisma.product.findUnique({ where: { id: payload.product_id } });
-    if (!product) throw new NotFoundException("Product not found");
-    const order = await this.prisma.order.create({
-      data: {
-        order_number: "ORD-" + Date.now(),
-        ortomat_id: payload.ortomat_id,
-        cell_number: payload.cell_number,
-        product_id: payload.product_id,
-        doctor_id: payload.doctor_id ?? null,
-        price: payload.price,
-        payment_status: "pending"
-      }
+  async create(data: CreateOrderDto) {
+    return this.prisma.order.create({ data });
+  }
+
+  async findAll() {
+    return this.prisma.order.findMany({
+      include: { product: true, ortomat: true, doctor: true },
     });
+  }
+
+  async findOne(id: string) {
+    return this.prisma.order.findUnique({
+      where: { id },
+      include: { product: true, ortomat: true, doctor: true },
+    });
+  }
+
+  async updatePaymentStatus(orderId: string, status: string, paymentId?: string) {
+    const order = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { payment_status: status, payment_id: paymentId },
+      include: { doctor: true },
+    });
+
+    if (status === "success" && order.doctor_id) {
+      const doctor = await this.prisma.doctor.findUnique({
+        where: { id: order.doctor_id },
+      });
+      if (doctor) {
+        const commission = order.price * (doctor.commission_rate / 100);
+        await this.prisma.doctor.update({
+          where: { id: doctor.id },
+          data: {
+            total_sales: { increment: 1 },
+            total_earnings: { increment: commission },
+          },
+        });
+      }
+    }
+
     return order;
-  }
-
-  async payInit(id: string) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
-    if (!order) throw new NotFoundException("Order not found");
-    // Next step: LiqPay form/signature build
-    return { ok: true, order_id: id, provider: "liqpay:init" };
-  }
-
-  async liqpayCallback(data: any) {
-    // Next step: verify LiqPay signature, update payment_status, commission accrual, open cell
-    return { ok: true };
-  }
-
-  async byId(id: string) {
-    return this.prisma.order.findUnique({ where: { id } });
   }
 }

@@ -1,19 +1,39 @@
-import { Body, Controller, Post } from "@nestjs/common";
+﻿import { Controller, Post, Body, UnauthorizedException } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import { RegisterDto } from "./register.dto";
-import { LoginDto } from "./login.dto";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private auth: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post("register")
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
+  async register(
+    @Body()
+    body: {
+      email: string;
+      password?: string;
+      password_hash?: string;
+      first_name: string;
+      last_name: string;
+      phone: string;
+      role: string;
+    }
+  ) {
+    const pass = body.password || body.password_hash;
+    if (!pass) throw new UnauthorizedException("Password is required");
+    return this.authService.register({ ...body, password: pass });
   }
 
   @Post("login")
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  async login(
+    @Body() body: { email: string; password?: string; password_hash?: string }
+  ) {
+    const pass = body.password || body.password_hash;
+    if (!pass) throw new UnauthorizedException("Password is required");
+
+    const user = await this.authService.validateUser(body.email, pass);
+    if (!user) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+    return this.authService.login(user);
   }
 }

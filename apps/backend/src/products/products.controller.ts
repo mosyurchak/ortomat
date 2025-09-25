@@ -1,13 +1,12 @@
-import { Controller, Get, Param } from "@nestjs/common";
-import { ProductsService } from "./products.service";
+﻿import { Controller, Get } from "@nestjs/common";
 
 @Controller("products")
 export class ProductsController {
-  constructor(private svc: ProductsService) {}
-
   @Get()
-  list() { return this.svc.list(); }
-
-  @Get(":id")
-  details(@Param("id") id: string) { return this.svc.byId(id); }
+  async findAll() {
+    return [
+      { id: "p1", name: "Knee Brace", price: 1200 },
+      { id: "p2", name: "Wrist Support", price: 800 }
+    ];
+  }
 }

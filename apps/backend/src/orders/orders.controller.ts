@@ -1,27 +1,23 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+﻿import { Controller, Get, Post, Body, Param } from "@nestjs/common";
 import { OrdersService } from "./orders.service";
+import { CreateOrderDto } from "./dto/create-order.dto";
 
 @Controller("orders")
 export class OrdersController {
-  constructor(private svc: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   @Post("create")
-  create(@Body() body: any) {
-    return this.svc.create(body);
+  async create(@Body() dto: CreateOrderDto) {
+    return this.ordersService.create(dto);
   }
 
-  @Post(":id/pay")
-  pay(@Param("id") id: string) {
-    return this.svc.payInit(id);
-  }
-
-  @Post("callback")
-  callback(@Body() data: any) {
-    return this.svc.liqpayCallback(data);
+  @Get()
+  async findAll() {
+    return this.ordersService.findAll();
   }
 
   @Get(":id")
-  byId(@Param("id") id: string) {
-    return this.svc.byId(id);
+  async findOne(@Param("id") id: string) {
+    return this.ordersService.findOne(id);
   }
 }
